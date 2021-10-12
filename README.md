@@ -74,3 +74,13 @@ You can clone the repository to get the demo spectra and quant table files!
 Once installed, try it using the tutorial jupyter notebook.
 
 Please add feedback to the issues section. Thanks !
+
+
+recipee 
+
+```
+conda create --name memo python=3.8
+conda activate memo
+conda install -c conda-forge scikit-bio
+pip install .
+```
