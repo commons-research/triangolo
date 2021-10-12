@@ -17,6 +17,7 @@ import numpy as np
 import memo_ms as memo
 import plotly.express as px
 import os
+import xgboost
 
 
 # %%
@@ -131,6 +132,8 @@ memo_qe.memo_matrix
 memo_qe.filter_matrix(matrix_to_use='memo_matrix', samples_pattern='blank', max_occurence=100)
 memo_qe.filter_matrix(matrix_to_use='feature_matrix', samples_pattern='blank', max_occurence=100)
 memo_qe.filtered_memo_matrix
+
+
 
 # %% [markdown]
 # ## Plotting
@@ -262,6 +265,42 @@ memo.plot_pcoa_2d(
 
 
 # %%
+# here we start messing around with the ml shit
 
+# first we concatenate the memo matrix and the metadata
+
+df = memo_qe.filtered_memo_matrix
+
+memo_meta = pd.merge(df, df_meta, left_on='filename',
+                        right_on='Filename', how='left')
+
+memo_meta.to_csv('data/memo_meta.csv', index= False)
+
+
+def stratified_split(df, target, val_percent=0.2):
+    '''
+    Function to split a dataframe into train and validation sets, while preserving the ratio of the labels in the target variable
+    Inputs:
+    - df, the dataframe
+    - target, the target variable
+    - val_percent, the percentage of validation samples, default 0.2
+    Outputs:
+    - train_idxs, the indices of the training dataset
+    - val_idxs, the indices of the validation dataset
+    '''
+    classes=list(df[target].unique())
+    train_idxs, val_idxs = [], []
+    for c in classes:
+        idx=list(df[df[target]==c].index)
+        np.random.shuffle(idx)
+        val_size=int(len(idx)*val_percent)
+        val_idxs+=idx[:val_size]
+        train_idxs+=idx[val_size:]
+    return train_idxs, val_idxs
+
+
+train_idxs, val_idxs = stratified_split(df, 'label', val_percent=0.25)
+
+val_idxs, test_idxs = stratified_split(df[df.index.isin(val_idxs)], 'label', val_percent=0.5)
 
 
