@@ -16,7 +16,6 @@ import pandas as pd
 import numpy as np
 import memo_ms as memo
 import plotly.express as px
-import os
 
 
 # %%
@@ -63,42 +62,6 @@ df_meta['contains'] = df_meta.apply(conditions, axis=1)
 df_meta['instrument'] = np.where(df_meta['Samplename'].str.contains('qTOF'), 'qTOF', 'QE')
 df_meta['blank_qc'] = np.where(df_meta['Samplename'].str.contains('blank|qcmix', case = False), 'yes', 'no')
 df_meta
-
-# Here we directly fetch data from GNPS
-
-# gnps_job_id = '3197f70bed224f9ba6f59f62906839e9'
-# input_folder = 'data/local'
-
-
-# path_to_folder = os.path.expanduser(os.path.join(input_folder , gnps_job_id))
-# path_to_file = os.path.expanduser(os.path.join(input_folder , gnps_job_id + '.zip'))
-
-# download_gnps_job = True 
-
-# # Downloading GNPS files
-# if download_gnps_job == True:
-
-#     print('''
-#     Fetching the GNPS job: '''
-#     + gnps_job_id
-#     )
-
-#     job_url_zip = "https://gnps.ucsd.edu/ProteoSAFe/DownloadResult?task="+gnps_job_id+"&view=download_cytoscape_data"
-#     print(job_url_zip)
-
-#     cmd = 'curl -d "" '+job_url_zip+' -o '+path_to_file+ ' --create-dirs'
-#     subprocess.call(shlex.split(cmd))
-
-#     with zipfile.ZipFile(path_to_file, 'r') as zip_ref:
-#         zip_ref.extractall(path_to_folder)
-
-#     # We finally remove the zip file
-#     os.remove(path_to_file)
-
-#     print('''
-#     Job successfully downloaded: results are in: '''
-#     + path_to_folder
-#     )
 
 # %% [markdown]
 # ## Import feature_quant table
