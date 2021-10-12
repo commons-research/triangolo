@@ -116,7 +116,68 @@ feat_table_qe.quant_table
 # %%
 spectra_qe = memo.SpectraDocuments(path="data/qemistree_specs_ms.mgf", min_relative_intensity = 0.01,
             max_relative_intensity = 1, min_peaks_required=5, losses_from = 10, losses_to = 200, n_decimals = 2)
-spectra_qe.document
+
+
+spectra_qe.document['documents'][1]
+
+
+spectra_qe = memo.SpectraDocuments(path="data/qemistree_specs_ms.mgf", min_relative_intensity = 0.01,
+            max_relative_intensity = 1, min_peaks_required=5, losses_from = 10, losses_to = 200, n_decimals = 2)
+
+spectra_qe.document.get("documents")
+
+import pandas as pd
+import numpy as np
+from matchms.importing import load_from_mgf
+from matchms.filtering import add_losses
+from matchms.filtering import add_precursor_mz
+from matchms.filtering import normalize_intensities
+from matchms.filtering import require_minimum_number_of_peaks
+from matchms.filtering import select_by_relative_intensity
+
+def load_and_filter_from_mgf_full(path, min_relative_intensity, max_relative_intensity, loss_mz_from, loss_mz_to, n_required) -> list:
+    """Load and filter spectra from mgf file to prepare for MEMO matrix generation
+
+    Returns:
+        spectrums (list of matchms.spectrum): a list of matchms.spectrum objects
+    """
+    def apply_filters(spectrum):
+        spectrum = normalize_intensities(spectrum)
+        spectrum = select_by_relative_intensity(spectrum, intensity_from = min_relative_intensity, intensity_to = max_relative_intensity)
+        spectrum = add_precursor_mz(spectrum)
+        spectrum = add_losses(spectrum, loss_mz_from= loss_mz_from, loss_mz_to= loss_mz_to)
+        spectrum = require_minimum_number_of_peaks(spectrum, n_required= n_required)
+        return spectrum
+
+    spectra_list = [apply_filters(s) for s in load_from_mgf(path)]
+    spectra_list = [s for s in spectra_list if s is not None]
+    return spectra_list 
+
+spectras = load_and_filter_from_mgf_full(path="data/qemistree_specs_ms.mgf", min_relative_intensity = 0.01,
+            max_relative_intensity = 1, n_required=5, loss_mz_from = 10, loss_mz_to = 200)
+
+spectras[1].get("precursor_mz")
+
+spectras[1].peaks
+
+peaks_mz, peaks_intensities = spectras[1].peaks
+
+a = np.array([1,3,7,11,13,17,19])
+a = peaks_mz
+d = 1
+a[d:] - a[:-d]
+
+np.diff(peaks_mz)
+
+Could be an expesnive one to compute !!
+
+
+https://www.geeksforgeeks.org/print-distinct-absolute-differences-of-all-possible-pairs-from-a-given-array/
+
+
+
+
+
 
 # %% [markdown]
 # ## Generation of MEMO matrix
@@ -298,9 +359,242 @@ def stratified_split(df, target, val_percent=0.2):
         train_idxs+=idx[val_size:]
     return train_idxs, val_idxs
 
+df = memo_meta
 
-train_idxs, val_idxs = stratified_split(df, 'label', val_percent=0.25)
+df = df[df.blank_qc == 'no']
 
-val_idxs, test_idxs = stratified_split(df[df.index.isin(val_idxs)], 'label', val_percent=0.5)
+train_idxs, val_idxs = stratified_split(df, 'contains', val_percent=0.25)
 
+val_idxs, test_idxs = stratified_split(df[df.index.isin(val_idxs)], 'contains', val_percent=0.5)
+
+
+def test_stratified(df, col):
+    '''
+    Analyzes the ratio of different classes in a categorical variable within a dataframe
+    Inputs:
+    - dataframe
+    - categorical column to be analyzed
+    Returns: None
+    '''
+    classes=list(df[col].unique())
+    
+    for c in classes:
+        print(f'Proportion of records with {c}: {len(df[df[col]==c])*1./len(df):0.2} ({len(df[df[col]==c])} / {len(df)})')
+
+print('---------- STRATIFIED SAMPLING REPORT ----------')
+print('-------- Label proportions in FULL data --------')
+test_stratified(df, 'contains')
+print('-------- Label proportions in TRAIN data --------')
+test_stratified(df[df.index.isin(train_idxs)], 'contains')
+print('------ Label proportions in VALIDATION data -----')
+test_stratified(df[df.index.isin(val_idxs)], 'contains')
+print('-------- Label proportions in TEST data ---------')
+test_stratified(df[df.index.isin(test_idxs)], 'contains')
+
+
+train_df = df[df.index.isin(train_idxs)]
+X_train = train_df.loc[:, df.columns.str.startswith('peak')].values
+Y_train = train_df[['contains']].values
+print('Retrieved Training Data')
+val_df = df[df.index.isin(val_idxs)]
+X_val = val_df.loc[:, df.columns.str.startswith('peak')].values
+Y_val = val_df[['contains']].values
+print('Retrieved Validation Data')
+test_df = df[df.index.isin(test_idxs)]
+X_test = test_df.loc[:, df.columns.str.startswith('peak')].values
+Y_test = test_df[['contains']].values
+print('Retrieved Test Data')
+
+
+
+import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import GridSearchCV
+#store data, all in numpy arrays
+training_data = {'X_train':X_train,'Y_train':Y_train,
+                'X_val': X_val,'Y_val':Y_val,
+                'X_test': X_test,'Y_test':Y_test}
+
+
+from sklearn.ensemble import RandomForestClassifier
+
+clf = RandomForestClassifier(n_jobs=None,random_state=27,
+                       verbose=1)
+clf.fit(training_data['X_train'], training_data['Y_train'].reshape(training_data['Y_train'].shape[0],))
+
+predicted_labels = clf.predict(training_data['X_test'])
+
+accuracy_score(training_data['Y_test'], predicted_labels)
+
+params = {
+    'n_estimators'      : range(100,500,50),
+    'max_depth'         : [8, 9, 10, 11, 12],
+    'max_features': ['auto'],
+    'criterion' :['gini']
+}
+#metrics to consider: f1_micro, f1_macro, roc_auc_ovr
+gsearch1 = GridSearchCV(estimator = clf, param_grid = params, scoring='f1_micro',n_jobs=-1,verbose = 10, cv=5)
+gsearch1.fit(training_data['X_train'], training_data['Y_train'].reshape(training_data['Y_train'].shape[0],))
+
+def getTrainScores(gs):
+    results = {}
+    runs = 0
+    for x,y in zip(list(gs.cv_results_['mean_test_score']), gs.cv_results_['params']):
+        results[runs] = 'mean:' + str(x) + 'params' + str(y)
+        runs += 1
+    best = {'best_mean': gs.best_score_, "best_param":gs.best_params_}
+    return results, best
+
+getTrainScores(gsearch1)
+
+
+clf2 = gsearch1.best_estimator_
+
+params1 = {
+    'n_estimators'      : range(200,300,10),
+    'max_depth'         : [11, 12,13]
+}
+#metrics to consider: f1_micro, f1_macro, roc_auc_ovr
+gsearch2 = GridSearchCV(estimator = clf2, param_grid = params1, scoring='f1_micro',n_jobs=-1,verbose = 10, cv=5)
+gsearch2.fit(training_data['X_train'], training_data['Y_train'].reshape(training_data['Y_train'].shape[0],))
+
+getTrainScores(gsearch2)
+
+clf3 = gsearch2.best_estimator_
+
+params2 = {
+    'n_estimators'      : range(200,220,5),
+    'max_depth'         : [13,14,15]
+}
+#metrics to consider: f1_micro, f1_macro, roc_auc_ovr
+gsearch3 = GridSearchCV(estimator = clf3, param_grid = params2, scoring='f1_micro',n_jobs=-1,verbose = 10, cv=5)
+gsearch3.fit(training_data['X_train'], training_data['Y_train'].reshape(training_data['Y_train'].shape[0],))
+
+getTrainScores(gsearch3)
+
+
+clf4 = gsearch3.best_estimator_
+
+params3 = {
+    'max_depth'         : range(14,20,1)
+}
+#metrics to consider: f1_micro, f1_macro, roc_auc_ovr
+gsearch4 = GridSearchCV(estimator = clf4, param_grid = params3, scoring='f1_micro',n_jobs=-1,verbose = 10, cv=5)
+gsearch4.fit(training_data['X_train'], training_data['Y_train'].reshape(training_data['Y_train'].shape[0],))
+
+
+getTrainScores(gsearch4)
+
+
+clf5 = gsearch4.best_estimator_
+
+params4 = {
+    'max_depth'         : range(19,50,2)
+}
+#metrics to consider: f1_micro, f1_macro, roc_auc_ovr
+gsearch5 = GridSearchCV(estimator = clf5, param_grid = params4, scoring='f1_micro',n_jobs=-1,verbose = 10, cv=5)
+gsearch5.fit(training_data['X_train'], training_data['Y_train'].reshape(training_data['Y_train'].shape[0],))
+
+
+getTrainScores(gsearch5)
+
+clf6 = gsearch5.best_estimator_
+
+params5 = {
+    'max_depth'         : [24,25,26]
+}
+#metrics to consider: f1_micro, f1_macro, roc_auc_ovr
+gsearch6 = GridSearchCV(estimator = clf6, param_grid = params5, scoring='f1_micro',n_jobs=-1,verbose = 10, cv=5)
+gsearch6.fit(training_data['X_train'], training_data['Y_train'].reshape(training_data['Y_train'].shape[0],))
+
+getTrainScores(gsearch6)
+
+final_clf = gsearch6.best_estimator_
+
+final_clf.fit(training_data['X_train'], training_data['Y_train'].reshape(training_data['Y_train'].shape[0],))
+predicted_labels = final_clf.predict(training_data['X_test'])
+train_pred = final_clf.predict(training_data['X_train'])
+print('Train Accuracy:'+str(accuracy_score(training_data['Y_train'], train_pred)))
+print('Train F1-Score(Micro):'+str(f1_score(training_data['Y_train'], train_pred,average='micro')))
+print('------')
+print('Test Accuracy:'+str(accuracy_score(training_data['Y_test'], predicted_labels)))
+print('Test F1-Score(Micro):'+str(f1_score(training_data['Y_test'], predicted_labels,average='micro')))
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+sns.set(style="whitegrid")
+
+
+import xgboost as xgb
+import matplotlib.pyplot as plt
+
+features = [col for col in df if col.startswith('peak')]
+features
+
+#allow logloss and classification error plots for each iteraetion of xgb model
+def plot_compare(metrics,eval_results,epochs):
+    for m in metrics:
+        test_score = eval_results['val'][m]
+        train_score = eval_results['train'][m]
+        rang = range(0, epochs)
+        plt.rcParams["figure.figsize"] = [6,6]
+        plt.plot(rang, test_score,"c", label="Val")
+        plt.plot(rang, train_score,"orange", label="Train")
+        title_name = m + " plot"
+        plt.title(title_name)
+        plt.xlabel('Iterations')
+        plt.ylabel(m)
+        lgd = plt.legend()
+        plt.show()
+        
+def fitXgb(sk_model, training_data=training_data,epochs=300):
+    print('Fitting model...')
+    sk_model.fit(training_data['X_train'], training_data['Y_train'].reshape(training_data['Y_train'].shape[0],))
+    print('Fitting done!')
+    train = xgb.DMatrix(training_data['X_train'], label=training_data['Y_train'])
+    val = xgb.DMatrix(training_data['X_val'], label=training_data['Y_val'])
+    params = sk_model.get_xgb_params()
+    metrics = ['mlogloss','merror']
+    params['eval_metric'] = metrics
+    store = {}
+    evallist = [(val, 'val'),(train,'train')]
+    xgb_model = xgb.train(params, train, epochs, evallist,evals_result=store,verbose_eval=100)
+    print('-- Model Report --')
+    print('XGBoost Accuracy: '+str(accuracy_score(sk_model.predict(training_data['X_test']), training_data['Y_test'])))
+    print('XGBoost F1-Score (Micro): '+str(f1_score(sk_model.predict(training_data['X_test']),training_data['Y_test'],average='micro')))
+    plot_compare(metrics,store,epochs)
+    features = [col for col in df if col.startswith('peak')]
+    f, ax = plt.subplots(figsize=(10,5))
+    plot = sns.barplot(x=features, y=sk_model.feature_importances_)
+    ax.set_title('Feature Importance')
+    plot.set_xticklabels(plot.get_xticklabels(),rotation='vertical')
+    plt.show()
+
+
+
+f, ax = plt.subplots(figsize=(10,5))
+plot = sns.barplot(x=features, y=final_clf.feature_importances_)
+ax.set_title('Feature Importance')
+plot.set_xticklabels(plot.get_xticklabels(),rotation='vertical')
+plt.show()
+
+
+
+from xgboost.sklearn import XGBClassifier
+#initial model
+xgb1 = XGBClassifier(learning_rate=0.1,
+                    n_estimators=1000,
+                    max_depth=5,
+                    min_child_weight=1,
+                    gamma=0,
+                    subsample=0.8,
+                    colsample_bytree=0.8,
+                    objective='multi:softmax',
+                    nthread=4,
+                    num_class=9,
+                    seed=27)
+
+
+
+fitXgb(xgb1, training_data)
 

@@ -20,7 +20,7 @@ class SpectraDocuments:
     document : pd.DataFrame = field(init=False)
 
     def __post_init__(self):
-        self.spectra = import_data.load_and_filter_from_mgf(
+        self.spectra = import_data.load_and_filter_from_mgf_full(
             path = self.path,  min_relative_intensity = self.min_relative_intensity,
             max_relative_intensity = self.max_relative_intensity, loss_mz_from = self.losses_from,
             loss_mz_to = self.losses_to, n_required = self.min_peaks_required
