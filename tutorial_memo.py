@@ -121,10 +121,6 @@ spectra_qe = memo.SpectraDocuments(path="data/qemistree_specs_ms.mgf", min_relat
 spectra_qe.document['documents'][1]
 
 
-spectra_qe = memo.SpectraDocuments(path="data/qemistree_specs_ms.mgf", min_relative_intensity = 0.01,
-            max_relative_intensity = 1, min_peaks_required=5, losses_from = 10, losses_to = 200, n_decimals = 2)
-
-spectra_qe.document.get("documents")
 
 import pandas as pd
 import numpy as np
@@ -135,7 +131,7 @@ from matchms.filtering import normalize_intensities
 from matchms.filtering import require_minimum_number_of_peaks
 from matchms.filtering import select_by_relative_intensity
 
-def load_and_filter_from_mgf_full(path, min_relative_intensity, max_relative_intensity, loss_mz_from, loss_mz_to, n_required) -> list:
+def load_and_filter_from_mgf(path, min_relative_intensity, max_relative_intensity, loss_mz_from, loss_mz_to, n_required) -> list:
     """Load and filter spectra from mgf file to prepare for MEMO matrix generation
 
     Returns:
@@ -153,31 +149,470 @@ def load_and_filter_from_mgf_full(path, min_relative_intensity, max_relative_int
     spectra_list = [s for s in spectra_list if s is not None]
     return spectra_list 
 
-spectras = load_and_filter_from_mgf_full(path="data/qemistree_specs_ms.mgf", min_relative_intensity = 0.01,
+
+path_to_mgf = 'cocaine.mgf'
+# path_to_mgf = '/Users/pma/Dropbox/Research_UNIGE/Projets/Ongoing/sylvian-cretton/Erythroxylum_project/Fresh_Erythro/coca.mgf'
+
+spectras = load_and_filter_from_mgf(path=path_to_mgf, min_relative_intensity = 0.1,
+            max_relative_intensity = 1, n_required=5, loss_mz_from = 10, loss_mz_to = 200)
+# spectras = load_and_filter_from_mgf(path="/Users/pma/Dropbox/Research_UNIGE/Projets/Completed/Taxo_weigher/Full_GNPS_lib_filtered_top500.mgf", min_relative_intensity = 0.1,
+#             max_relative_intensity = 1, n_required=5, loss_mz_from = 10, loss_mz_to = 200)
+
+
+
+
+# spectras[3].get("precursor_mz")
+
+# len(spectras_sub)
+
+# spectras_sub = spectras[0:100]
+
+
+# spectras_sub[3].get("name")
+
+# names = [s.get("name") for s in spectras_sub]
+# precursor_mz = [s.get("precursor_mz") for s in spectras_sub]
+
+
+
+
+
+# for i in spectras_sub:
+#     if i.get("name").str.contains('Glucopiericidin') == True:
+#         print(i)
+
+
+
+# spectras = spectras[3]
+
+
+
+# spectras[3].peaks
+
+peaks_mz, peaks_intensities = spectras[3].peaks
+
+
+peaks_mz = np.round(peaks_mz, 1)
+
+# Could be an expesnive one to compute !!
+
+
+# https://www.geeksforgeeks.org/print-distinct-absolute-differences-of-all-possible-pairs-from-a-given-array/
+
+
+d = []
+from itertools import combinations
+for a, b in combinations(peaks_mz, 2):
+   print(b, a , abs(a - b))
+   d.append(
+        {
+            'parent': b,
+            'daughter': a,
+            'loss':  abs(a - b)
+        }
+   )
+
+
+df_d = pd.DataFrame(d)
+npa = df_d[['parent', 'loss']].to_numpy()
+df_d['COUNT'] = 1
+mat = df_d.pivot_table('COUNT', index='parent', columns="loss").fillna(0)
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# plt.imshow(np.random.random((50,50)))
+# plt.colorbar()
+# plt.show()
+
+
+plt.imshow(mat)
+plt.colorbar()
+plt.show()
+
+
+fig = px.imshow(mat)
+fig.show()
+
+from itertools import combinations
+
+
+f = {}
+for i in range(len(spectras)):
+    # prec_mz = spectras[i].get("precursor_mz")
+    peaks_mz, peaks_intensities = spectras[i].peaks
+    peaks_mz = np.round(peaks_mz, 1)
+    d = []
+    for a, b in combinations(peaks_mz, 2):
+        # print(b, a , abs(a - b))
+        d.append(
+                {
+                    'parent': b,
+                    'daughter': a,
+                    'loss':  abs(a - b)
+                }
+        )
+    df_d = pd.DataFrame(d)
+    # f.append(df_d)
+    f[i] = df_d
+    # npa = df_d[['parent', 'loss']].to_numpy()
+    # df_d['COUNT'] = 1
+    # mat = df_d.pivot_table('COUNT', index='parent', columns="loss").fillna(0)
+
+
+f[0]
+
+
+full_pl = pd.concat(f.values())
+full_pl = full_pl.drop_duplicates()
+
+
+npa = full_pl[['parent', 'loss']].to_numpy()
+full_pl['COUNT'] = 1
+mat = full_pl.pivot_table('COUNT', index='parent', columns="loss").fillna(0)
+
+
+
+full_counted = full_pl.pivot_table(columns=['parent','daughter'], aggfunc='size')
+
+full_counted = pd.DataFrame(full_counted)
+
+full_counted.reset_index(inplace=True)
+full_counted.rename(columns={0: 'count'}, inplace=True)
+mat = full_counted.pivot_table('count', index='parent', columns="loss").fillna(0)
+
+
+plt.imshow(mat, aspect='auto')
+plt.colorbar()
+plt.show() 
+
+mat[mat==0.0]=np.nan
+plt.matshow(mat,aspect='auto')
+
+
+fig = px.imshow(mat)
+fig.show()
+fig.write_html('full_map_int_counted.html',
+                    full_html=False,
+                    include_plotlyjs='cdn')
+
+
+
+import colorcet as cc
+import matplotlib.colors as colors
+import matplotlib.pyplot as plt
+from fast_histogram import histogram2d
+cmap = cc.cm["fire"].copy()
+cmap.set_bad(cmap.get_under())  # set the color for 0
+bounds = [[npa[:, 0].min(), npa[:, 0].max()], [npa[:, 1].min(), npa[:, 1].max()]]
+h = histogram2d(npa[:, 0], npa[:, 1], range=bounds, bins=500)
+plt.imshow(h, norm=colors.LogNorm(vmin=1, vmax=h.max()), cmap=cmap)
+plt.axis('on')
+plt.colorbar()
+plt.show()
+
+
+
+import datashader as ds
+import pandas as pd
+import colorcet as cc
+import matplotlib.pyplot as plt
+df = pd.DataFrame(data=full_counted, columns=["parent", "loss"])  # create a DF from array
+cvs = ds.Canvas(plot_width=500, plot_height=500)  # auto range or provide the `bounds` argument
+agg = cvs.points(full_counted, 'parent', 'loss')  # this is the histogram
+img = ds.tf.set_background(ds.tf.shade(agg, how="log", cmap=cc.fire), "black").to_pil()  # create a rasterized image
+plt.imshow(img)
+plt.axis('off')
+plt.show()
+
+
+
+import plotly.express as px
+import pandas as pd
+import numpy as np
+import datashader as ds
+df = pd.read_parquet('https://raw.githubusercontent.com/plotly/datasets/master/2015_flights.parquet')
+
+cvs = ds.Canvas(plot_width=100, plot_height=100)
+agg = cvs.points(df, 'SCHEDULED_DEPARTURE', 'DEPARTURE_DELAY')
+zero_mask = agg.values == 0
+agg.values = np.log10(agg.values, where=np.logical_not(zero_mask))
+agg.values[zero_mask] = np.nan
+fig = px.imshow(agg, origin='lower', labels={'color':'Log10(count)'})
+fig.update_traces(hoverongaps=False)
+fig.update_layout(coloraxis_colorbar=dict(title='Count', tickprefix='1.e'))
+fig.show()
+
+
+df = full_counted
+
+cvs = ds.Canvas(plot_width=1000, plot_height=1000)
+agg = cvs.points(df, 'parent', 'daughter')
+zero_mask = agg.values == 0
+agg.values = np.log10(agg.values, where=np.logical_not(zero_mask))
+agg.values[zero_mask] = np.nan
+fig = px.imshow(agg, origin='lower', labels={'color':'Log10(count)'})
+fig.update_traces(hoverongaps=False)
+fig.update_layout(coloraxis_colorbar=dict(title='Count', tickprefix='1.e'))
+fig.show()
+fig.write_html('e_coca_1000.html',
+                    full_html=False,
+                    include_plotlyjs='cdn')
+
+
+df = f[130]
+
+cvs = ds.Canvas(plot_width=100, plot_height=100)
+agg = cvs.points(df, 'parent', 'loss')
+zero_mask = agg.values == 0
+agg.values = np.log10(agg.values, where=np.logical_not(zero_mask))
+agg.values[zero_mask] = np.nan
+fig = px.imshow(agg, origin='lower', labels={'color':'Log10(count)'})
+fig.update_traces(hoverongaps=False)
+fig.update_layout(coloraxis_colorbar=dict(title='Count', tickprefix='1.e'))
+fig.show()
+fig.write_html('full_map_int_counted_ds_f1.html',
+                    full_html=False,
+                    include_plotlyjs='cdn')
+
+
+
+import plotly.express as px
+df = full_counted
+
+fig = px.density_heatmap(df, x="parent", y="loss")
+fig.show()
+
+
+https://towardsdatascience.com/feature-extraction-techniques-d619b56e31be
+https://holoviews.org/getting_started/Gridded_Datasets.html
+
+l=[]
+
+
+from nilearn import plotting
+
+title = "Partial correlation matrices\n for d=300"
+display = plotting.plot_matrix(mat, colorbar=True,
+                               title=title)
+plotting.show()
+
+
+
+for i in range(0,100):
+ rand_cols = np.random.permutation(df.columns)[0:5]
+ df2 = df[rand_cols].copy()
+ l.append(df2.values)
+
+
+a=np.concatenate(l,1)
+a.shape
+(1000, 500)
+
+#############3
+
+
+# path_to_mgf = 'data/CCMSLIB00000001566_pc.mgf'
+path_to_mgf = 'CCMSLIB00004679364_cocaine.mgf'
+
+outfile = 'data/cocaine.mgf.html'
+
+spectras = load_and_filter_from_mgf(path=path_to_mgf, min_relative_intensity = 0.01,
             max_relative_intensity = 1, n_required=5, loss_mz_from = 10, loss_mz_to = 200)
 
-spectras[1].get("precursor_mz")
+# spectras = spectras[0:10]
+# spectras[1].get("precursor_mz")
 
-spectras[1].peaks
+# peaks_mz, peaks_intensities = spectras[i].peaks
+# spec = pd.DataFrame(peaks_mz, peaks_intensities)
+# spec.reset_index(inplace=True)
 
-peaks_mz, peaks_intensities = spectras[1].peaks
+# spec.rename(columns={0: 'mz', 'index': 'int'}, inplace=True)
 
-a = np.array([1,3,7,11,13,17,19])
-a = peaks_mz
-d = 1
-a[d:] - a[:-d]
+# fig = px.histogram(spec, x="int")
+# fig.show()
 
-np.diff(peaks_mz)
+f = {}
+for i in range(len(spectras)):
+    # prec_mz = spectras[i].get("precursor_mz")
+    peaks_mz, peaks_intensities = spectras[i].peaks
+    peaks_mz = np.round(peaks_mz, 3)
+    d = []
+    for a, b in combinations(peaks_mz, 2):
+        # print(b, a , abs(a - b))
+        d.append(
+                {
+                    'parent': b,
+                    'daughter': a,
+                    'loss':  abs(a - b)
+                }
+        )
+    df_d = pd.DataFrame(d)
+    df_d = df_d[df_d['loss'] >= 1 ]
+    # f.append(df_d)
+    f[i] = df_d
+    # npa = df_d[['parent', 'loss']].to_numpy()
+    # df_d['COUNT'] = 1
+    # mat = df_d.pivot_table('COUNT', index='parent', columns="loss").fillna(0)
 
-Could be an expesnive one to compute !!
-
-
-https://www.geeksforgeeks.org/print-distinct-absolute-differences-of-all-possible-pairs-from-a-given-array/
 
 
 
+full_pl = pd.concat(f.values())
+full_pl = full_pl.drop_duplicates()
 
 
+full_counted = full_pl.pivot_table(columns=['parent','loss'], aggfunc='size')
+full_counted = pd.DataFrame(full_counted)
+full_counted.reset_index(inplace=True)
+full_counted.rename(columns={0: 'count'}, inplace=True)
+
+
+df = full_counted
+
+cvs = ds.Canvas(plot_width=200, plot_height=200)
+agg = cvs.points(df, 'parent', 'loss')
+zero_mask = agg.values == 0
+agg.values = np.log10(agg.values, where=np.logical_not(zero_mask))
+agg.values[zero_mask] = np.nan
+fig = px.imshow(agg, origin='lower', labels={'color':'Log10(count)'})
+fig.update_traces(hoverongaps=False)
+fig.update_layout(coloraxis_colorbar=dict(title='Count', tickprefix='1.e'))
+fig.show()
+fig.write_html(outfile,
+                    full_html=False,
+                    include_plotlyjs='cdn')
+
+df.to_csv('memo_mn_loss_cocaine.csv')
+
+
+
+
+from PIL import Image
+from collections import Counter
+import numpy as np
+
+
+df_ar = np.asarray(df)
+
+
+print(np.shape(df_ar))
+
+flat_array_1 = df_ar.flatten()
+print(np.shape(flat_array_1))
+
+RH1 = Counter(flat_array_1)
+
+H1 = []
+for i in range(256):
+    if i in RH1.keys():
+        H1.append(RH1[i])
+    else:
+        H1.append(0)
+
+def L2Norm(H1,H2):
+    distance =0
+    for i in range(len(H1)):
+        distance += np.square(H1[i]-H2[i])
+    return np.sqrt(distance)
+
+
+
+df_ar = np.asarray(df)
+
+
+print(np.shape(df_ar))
+
+flat_array_1 = df_ar.flatten()
+print(np.shape(flat_array_1))
+
+RH1 = Counter(flat_array_1)
+
+H2 = []
+for i in range(256):
+    if i in RH1.keys():
+        H2.append(RH1[i])
+    else:
+        H2.append(0)
+
+
+
+
+
+df_ar = np.asarray(df)
+
+
+print(np.shape(df_ar))
+
+flat_array_1 = df_ar.flatten()
+print(np.shape(flat_array_1))
+
+RH1 = Counter(flat_array_1)
+
+H3 = []
+for i in range(256):
+    if i in RH1.keys():
+        H3.append(RH1[i])
+    else:
+        H3.append(0)
+
+
+
+
+
+dist_test_ref_1 = L2Norm(H1,testH)
+print("The distance between Reference_Image_1 and Test Image is : {}".format(dist_test_ref_1))
+
+dist_test_ref_2 = L2Norm(H1,testHpc)
+print("The distance between Reference_Image_2 and Test Image is : {}".format(dist_test_ref_2))
+
+
+########
+# Lets work on the MST
+
+
+import tmap as tm
+import numpy as np
+from matplotlib import pyplot as plt
+
+
+def main():
+    """ Main function """
+
+    n = 25
+    edge_list = []
+
+    # Create a random graph
+    for i in range(n):
+        for j in np.random.randint(0, high=n, size=2):
+            edge_list.append([i, j, np.random.rand(1)])
+
+    # Compute the layout
+    x, y, s, t, _ = tm.layout_from_edge_list(
+        n, edge_list, create_mst=False
+    )
+
+    # Plot the edges
+    for i in range(len(s)):
+        plt.plot(
+            [x[s[i]], x[t[i]]],
+            [y[s[i]], y[t[i]]],
+            "k-",
+            linewidth=0.5,
+            alpha=0.5,
+            zorder=1,
+        )
+
+    # Plot the vertices
+    plt.scatter(x, y, zorder=2)
+    plt.tight_layout()
+    plt.savefig("simple_graph.png")
+
+
+if __name__ == "__main__":
+    main()
+    
 
 # %% [markdown]
 # ## Generation of MEMO matrix
