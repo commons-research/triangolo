@@ -65,6 +65,8 @@ df_meta['instrument'] = np.where(df_meta['Samplename'].str.contains('qTOF'), 'qT
 df_meta['blank_qc'] = np.where(df_meta['Samplename'].str.contains('blank|qcmix', case = False), 'yes', 'no')
 df_meta
 
+
+
 # Here we directly fetch data from GNPS
 
 # gnps_job_id = '3197f70bed224f9ba6f59f62906839e9'
@@ -150,8 +152,8 @@ def load_and_filter_from_mgf(path, min_relative_intensity, max_relative_intensit
     return spectra_list 
 
 
-path_to_mgf = 'cocaine.mgf'
-# path_to_mgf = '/Users/pma/Dropbox/Research_UNIGE/Projets/Ongoing/sylvian-cretton/Erythroxylum_project/Fresh_Erythro/coca.mgf'
+# path_to_mgf = 'cocaine.mgf'
+path_to_mgf = '/Users/pma/Dropbox/Research_UNIGE/Projets/Ongoing/sylvian-cretton/Erythroxylum_project/Fresh_Erythro/coca.mgf'
 
 spectras = load_and_filter_from_mgf(path=path_to_mgf, min_relative_intensity = 0.1,
             max_relative_intensity = 1, n_required=5, loss_mz_from = 10, loss_mz_to = 200)
@@ -265,7 +267,7 @@ f[0]
 
 
 full_pl = pd.concat(f.values())
-full_pl = full_pl.drop_duplicates()
+# full_pl = full_pl.drop_duplicates()
 
 
 npa = full_pl[['parent', 'loss']].to_numpy()
@@ -414,9 +416,12 @@ a.shape
 
 
 # path_to_mgf = 'data/CCMSLIB00000001566_pc.mgf'
-path_to_mgf = 'CCMSLIB00004679364_cocaine.mgf'
+# path_to_mgf = 'CCMSLIB00004679364_cocaine.mgf'
+path_to_mgf = '/Users/pma/Dropbox/Research_UNIGE/Projets/Ongoing/sylvian-cretton/Erythroxylum_project/Fresh_Erythro/coca.mgf'
 
-outfile = 'data/cocaine.mgf.html'
+
+# outfile = 'data/cocaine1000.mgf.html'
+outfile = 'data/e_coca.mgf.html'
 
 spectras = load_and_filter_from_mgf(path=path_to_mgf, min_relative_intensity = 0.01,
             max_relative_intensity = 1, n_required=5, loss_mz_from = 10, loss_mz_to = 200)
@@ -437,7 +442,7 @@ f = {}
 for i in range(len(spectras)):
     # prec_mz = spectras[i].get("precursor_mz")
     peaks_mz, peaks_intensities = spectras[i].peaks
-    peaks_mz = np.round(peaks_mz, 3)
+    peaks_mz = np.round(peaks_mz, 2)
     d = []
     for a, b in combinations(peaks_mz, 2):
         # print(b, a , abs(a - b))
@@ -460,7 +465,7 @@ for i in range(len(spectras)):
 
 
 full_pl = pd.concat(f.values())
-full_pl = full_pl.drop_duplicates()
+# full_pl = full_pl.drop_duplicates()
 
 
 full_counted = full_pl.pivot_table(columns=['parent','loss'], aggfunc='size')
@@ -469,9 +474,20 @@ full_counted.reset_index(inplace=True)
 full_counted.rename(columns={0: 'count'}, inplace=True)
 
 
+full_counted = full_pl.pivot_table(columns=['parent','daughter', 'loss'], aggfunc='size')
+full_counted = pd.DataFrame(full_counted)
+full_counted.reset_index(inplace=True)
+full_counted.rename(columns={0: 'count'}, inplace=True)
+
+
+full_counted = full_counted[full_counted['count'] > 7]
+
+
+
+
 df = full_counted
 
-cvs = ds.Canvas(plot_width=200, plot_height=200)
+cvs = ds.Canvas(plot_width=1000, plot_height=1000)
 agg = cvs.points(df, 'parent', 'loss')
 zero_mask = agg.values == 0
 agg.values = np.log10(agg.values, where=np.logical_not(zero_mask))
@@ -484,7 +500,8 @@ fig.write_html(outfile,
                     full_html=False,
                     include_plotlyjs='cdn')
 
-df.to_csv('memo_mn_loss_cocaine.csv')
+df.to_csv('memo_mn_loss_cocaine_f7.csv')
+
 
 
 
