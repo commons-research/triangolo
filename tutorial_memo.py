@@ -18,7 +18,7 @@ import memo_ms as memo
 import plotly.express as px
 import os
 import xgboost
-
+from itertools import combinations
 
 # %%
 # this cell is tagged 'parameters'
@@ -237,7 +237,7 @@ plt.show()
 fig = px.imshow(mat)
 fig.show()
 
-from itertools import combinations
+
 
 
 f = {}
@@ -419,11 +419,12 @@ a.shape
 # path_to_mgf = 'CCMSLIB00004679364_cocaine.mgf'
 path_to_mgf = '/Users/pma/Dropbox/Research_UNIGE/Projets/Ongoing/sylvian-cretton/Erythroxylum_project/Fresh_Erythro/coca.mgf'
 
+path_to_mgf = '/Users/pma/Dropbox/Research_UNIGE/Projets/Ongoing/thilo-kohler/TK_mutants_PA14_vs_wspF/TK_mutants_PA14_vs_wspF_spectra.mgf'
 
 # outfile = 'data/cocaine1000.mgf.html'
-outfile = 'data/e_coca.mgf.html'
+outfile = 'data/pa.mgf.html'
 
-spectras = load_and_filter_from_mgf(path=path_to_mgf, min_relative_intensity = 0.01,
+spectras = load_and_filter_from_mgf(path=path_to_mgf, min_relative_intensity = 0.001,
             max_relative_intensity = 1, n_required=5, loss_mz_from = 10, loss_mz_to = 200)
 
 # spectras = spectras[0:10]
@@ -441,6 +442,7 @@ spectras = load_and_filter_from_mgf(path=path_to_mgf, min_relative_intensity = 0
 f = {}
 for i in range(len(spectras)):
     # prec_mz = spectras[i].get("precursor_mz")
+    scan = spectras[i].get("scans")
     peaks_mz, peaks_intensities = spectras[i].peaks
     peaks_mz = np.round(peaks_mz, 2)
     d = []
@@ -455,12 +457,20 @@ for i in range(len(spectras)):
         )
     df_d = pd.DataFrame(d)
     df_d = df_d[df_d['loss'] >= 1 ]
+    df_d['loss'] = round(df_d['loss'],2)
     # f.append(df_d)
-    f[i] = df_d
+    f[i] = df_d, scan 
     # npa = df_d[['parent', 'loss']].to_numpy()
     # df_d['COUNT'] = 1
     # mat = df_d.pivot_table('COUNT', index='parent', columns="loss").fillna(0)
 
+spectras[0].get("scans")
+
+# df_sub = pd.DataFrame(f[0])
+# full_counted = df_sub.pivot_table(columns=['loss'], aggfunc='size')
+# full_counted = pd.DataFrame(full_counted)
+# full_counted.reset_index(inplace=True)
+# full_counted.rename(columns={0: 'count'}, inplace=True)
 
 
 
@@ -474,20 +484,32 @@ full_counted.reset_index(inplace=True)
 full_counted.rename(columns={0: 'count'}, inplace=True)
 
 
-full_counted = full_pl.pivot_table(columns=['parent','daughter', 'loss'], aggfunc='size')
-full_counted = pd.DataFrame(full_counted)
-full_counted.reset_index(inplace=True)
-full_counted.rename(columns={0: 'count'}, inplace=True)
+# full_counted = full_pl.pivot_table(columns=['parent','daughter', 'loss'], aggfunc='size')
+# full_counted = pd.DataFrame(full_counted)
+# full_counted.reset_index(inplace=True)
+# full_counted.rename(columns={0: 'count'}, inplace=True)
 
 
-full_counted = full_counted[full_counted['count'] > 7]
+# full_counted = full_pl.pivot_table(columns=['loss'], aggfunc='size')
+# full_counted = pd.DataFrame(full_counted)
+# full_counted.reset_index(inplace=True)
+# full_counted.rename(columns={0: 'count'}, inplace=True)
 
 
+# fig = px.histogram(full_counted, x="loss", nbins=100000)
+# fig.show()
+
+
+
+# full_counted = full_counted[full_counted['count'] > 7]
+
+
+# full_counted = full_counted[full_counted['loss'] < 26]
 
 
 df = full_counted
 
-cvs = ds.Canvas(plot_width=1000, plot_height=1000)
+cvs = ds.Canvas(plot_width=10000, plot_height=1000)
 agg = cvs.points(df, 'parent', 'loss')
 zero_mask = agg.values == 0
 agg.values = np.log10(agg.values, where=np.logical_not(zero_mask))
@@ -500,8 +522,28 @@ fig.write_html(outfile,
                     full_html=False,
                     include_plotlyjs='cdn')
 
-df.to_csv('memo_mn_loss_cocaine_f7.csv')
+df.to_csv('memo_mn_pseudo.csv')
 
+
+df_1 = f[1]
+
+## extracting a specific loss within the dict of dataframes
+list_of_serie = []
+
+for key, value in f.items():
+    #if 14.13 in value['loss'].values:
+    if value['loss'].between(26,26.01).any():
+        s = value['loss']  #extract the serie you want
+        s= s.rename(key) # change the change of teh serie by the day
+
+        list_of_serie.append(s) # add in a list of serie
+
+# then concatenate all
+df = pd.concat(list_of_serie, axis=1) # concatenate this list of series
+
+
+type(value['loss'])
+print(df)
 
 
 

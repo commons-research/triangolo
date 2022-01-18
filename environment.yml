@@ -1,0 +1,18 @@
+name: triangulator
+
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+  - anaconda
+dependencies:
+  - python==3.7
+  - numpy
+  - pandas
+  - plotly
+  - datashader
+  - pip
+  - pip :
+    - scikit-bio
+    - memo_ms
+
