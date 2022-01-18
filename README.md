@@ -22,3 +22,14 @@ You should now be able to install the required the dependency using Mamba
 ```
 mamba env create -f environment.yml
 ```
+
+
+
+## Running
+
+
+
+Place your mgf files in the ./data/input/ folder (some examples files are already there)
+
+
+Open and modify the triangulator.py 
