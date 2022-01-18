@@ -31,5 +31,6 @@ mamba env create -f environment.yml
 
 Place your mgf files in the ./data/input/ folder (some examples files are already there)
 
+Navigate to the src folder
 
-Open and modify the triangulator.py 
+Open and modify the triangulator.py according to your need. Happy triangulations !
