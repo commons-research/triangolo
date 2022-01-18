@@ -21,7 +21,11 @@ You should now be able to install the required the dependency using Mamba
 mamba env create -f environment.yml
 ```
 
+You can now activate the newly created environment
 
+```
+conda activate triangolo
+```
 
 ## Running
 
