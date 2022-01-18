@@ -122,6 +122,7 @@ def plot_it_interactive(df,x,y,plot_width_value, plot_height_value, output_path,
     fig = px.imshow(agg, origin='lower', labels={'color':'Log10(count)'})
     fig.update_traces(hoverongaps=False)
     fig.update_layout(coloraxis_colorbar=dict(title='Count', tickprefix='1.e'))
+    fig.update_layout(title= 'Scatter of ' + x +' - '+ y +' combinations for ' + filename)
     fig.show()
     fig.write_html(output_path + '/'+ filename +'_'+ x +'_'+ y +'_'+ str(plot_width_value) +'x'+ str(plot_height_value) + '.html',
                         full_html=False,
