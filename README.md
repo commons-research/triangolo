@@ -2,7 +2,7 @@
 
 ## Description
 
-![alt text](https://github.com/commons-research/tringolo/blob/main/docs/img/triangolo_sample.png?raw=true)
+![alt text](https://github.com/commons-research/triangolo/blob/main/docs/img/triangolo_sample.png?raw=true)
 
 
 To fill
