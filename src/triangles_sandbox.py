@@ -1,3 +1,62 @@
+
+
+
+
+
+
+
+# We iterate over each spectra of the spectra ensemble and calculate 
+
+# We define and empty dict
+pdl_combinations_dict = {}
+
+for i in range(20):
+    # prec_mz = spectras[i].get("precursor_mz")
+    # here we adapt the script to the latest Spikes class
+    peaks_mz = spectras[i].peaks.mz
+    peaks_intensities  = spectras[i].peaks.intensities
+    peaks_mz = np.round(peaks_mz, 1)
+    d = []
+    for a, b, c in combinations(peaks_mz, 3):
+        print(c, b, a , np.round(abs(a - b), 2), np.round(abs(b - c), 2), np.round(abs(a - c), 2))
+        d.append(
+                {
+                    'granny': c,
+                    'mama': b,
+                    'daughter': a,
+                    'loss_gd':  abs(c - a),
+                    'loss_gm':  abs(c - b)
+                }
+        )
+    df_d = pd.DataFrame(d)
+    #df_d = df_d[df_d['loss'] >= 1 ]
+    # f.append(df_d)
+    pdl_combinations_dict[i] = df_d
+    # npa = df_d[['parent', 'loss']].to_numpy()
+    # df_d['COUNT'] = 1
+    # mat = df_d.pivot_table('COUNT', index='parent', columns="loss").fillna(0)
+
+pdl_combinations_df = pd.concat(pdl_combinations_dict.values())
+return pdl_combinations_df
+
+
+aggregated_pdl_combinations_df = pdl_combinations_df.pivot_table(columns=['loss_gd','loss_gm'], aggfunc='size')
+aggregated_pdl_combinations_df = pd.DataFrame(aggregated_pdl_combinations_df)
+aggregated_pdl_combinations_df.reset_index(inplace=True)
+aggregated_pdl_combinations_df.rename(columns={0: 'count'}, inplace=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 # %% [markdown]

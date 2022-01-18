@@ -38,6 +38,7 @@ def combinator(spectras, precision):
     Args:
             spectras (a list of matchms.spectrum objects): a list of matchms.spectrum objects
             precision (int): precision for the losses calculation (in number of decimals)
+            r (int): will return successive r-length combinations of elements in the iterable.
     Returns:
         f : a dataframe of parent, daughter and losses
     """
@@ -129,5 +130,7 @@ def plot_it_interactive(df,x,y,plot_width_value, plot_height_value, output_path,
     fig.write_html(output_path + '/'+ filename +'_'+ x +'_'+ y +'_'+ str(plot_width_value) +'x'+ str(plot_height_value) + '.html',
                         full_html=False,
                         include_plotlyjs='cdn')
+
+
 
 

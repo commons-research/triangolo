@@ -12,11 +12,11 @@ from helpers import plot_it_interactive
 # %%
 # Define the filename you want to use for the outputs (html interactive plots and csv of parents/daughters/losses)
 
-filename = 'cocaine'
+filename = 'erythroxylum_coca'
 
 # Define the path of the corresponding spectral file (mfg format)
 
-path_to_mgf = './data/input/cocaine.mgf'
+path_to_mgf = '../data/input/e_coca.mgf'
 
 # %%
 # Load the spectra defining the parsing parameters
@@ -27,8 +27,7 @@ spectras = load_and_filter_from_mgf(path=path_to_mgf, min_relative_intensity = 0
 # %%
 # calculate all combinations of losses across the spectral file (no settings required)
 
-pdl_combinations_df = combinator(spectras, 1)
-
+pdl_combinations_df = combinator(spectras, 2)
 
 # %%
 # aggregate the calculated parent / daughter / loss combinations
@@ -38,7 +37,7 @@ agg_pdl_df = aggregator(pdl_combinations_df)
 # %%
 # output as a csv if needed
 
-agg_pdl_df.to_csv('./data/output/' + filename + '_pdl.csv')
+agg_pdl_df.to_csv('../data/output/' + filename + '_pdl.csv')
 
 # %%
 # quick static plot using datashader 
@@ -60,6 +59,6 @@ plot_it_interactive(df=agg_pdl_df,
                     y='daughter',
                     plot_width_value=1000,
                     plot_height_value=1000,
-                    output_path='./data/output/',
+                    output_path='../data/output/',
                     filename=filename
                     )
