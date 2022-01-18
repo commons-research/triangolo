@@ -1,6 +1,4 @@
-# memo
-
-Triangulator
+# Triangolo
 
 ## Description
 
@@ -33,4 +31,4 @@ Place your mgf files in the ./data/input/ folder (some examples files are alread
 
 Navigate to the src folder
 
-Open and modify the triangulator.py according to your need. Happy triangulations !
+Open and modify the triangolo.py according to your need. Happy triangulations !
