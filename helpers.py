@@ -32,10 +32,12 @@ def load_and_filter_from_mgf(path, min_relative_intensity, max_relative_intensit
     spectra_list = [s for s in spectra_list if s is not None]
     return spectra_list 
 
-def combinator(spectras):
+def combinator(spectras, precision):
 
     """Iterates over a list of matchms.spectrum objects and returns all combination of losses across a spectra
-
+    Args:
+            spectras (a list of matchms.spectrum objects): a list of matchms.spectrum objects
+            precision (int): precision for the losses calculation (in number of decimals)
     Returns:
         f : a dataframe of parent, daughter and losses
     """
@@ -49,7 +51,7 @@ def combinator(spectras):
         # here we adapt the script to the latest Spikes class
         peaks_mz = spectras[i].peaks.mz
         peaks_intensities  = spectras[i].peaks.intensities
-        peaks_mz = np.round(peaks_mz, 2)
+        peaks_mz = np.round(peaks_mz, precision)
         d = []
         for a, b in combinations(peaks_mz, 2):
             # print(b, a , abs(a - b))

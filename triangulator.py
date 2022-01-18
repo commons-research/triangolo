@@ -2,7 +2,7 @@
 # %%
 # We import the required libraries
 
-# Here we import the helpers fuunctions (see helpers.py)
+# Here we import the helpers functions (see helpers.py)
 from helpers import load_and_filter_from_mgf
 from helpers import combinator
 from helpers import aggregator
@@ -12,22 +12,23 @@ from helpers import plot_it_interactive
 # %%
 # Define the filename you want to use for the outputs (html interactive plots and csv of parents/daughters/losses)
 
-filename = 'erythroxylum_coca'
+filename = 'cocaine'
 
 # Define the path of the corresponding spectral file (mfg format)
 
-path_to_mgf = './data/input/e_coca.mgf'
+path_to_mgf = './data/input/cocaine.mgf'
 
 # %%
 # Load the spectra defining the parsing parameters
 
-spectras = load_and_filter_from_mgf(path=path_to_mgf, min_relative_intensity = 0.1,
+spectras = load_and_filter_from_mgf(path=path_to_mgf, min_relative_intensity = 0.01,
             max_relative_intensity = 1, n_required=5, loss_mz_from = 10, loss_mz_to = 200)
 
 # %%
 # calculate all combinations of losses across the spectral file (no settings required)
 
-pdl_combinations_df = combinator(spectras)
+pdl_combinations_df = combinator(spectras, 1)
+
 
 # %%
 # aggregate the calculated parent / daughter / loss combinations
