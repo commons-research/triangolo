@@ -34,6 +34,9 @@ pdl_combinations_df = combinator(spectras, 2)
 
 agg_pdl_df = aggregator(pdl_combinations_df)
 
+
+agg_pdl_df = agg_pdl_df[agg_pdl_df['count'] >= 5]
+
 # %%
 # output as a csv if needed
 
@@ -56,9 +59,9 @@ plot_it_quick(agg_pdl_df, 'parent', 'loss')
 
 plot_it_interactive(df=agg_pdl_df,
                     x='parent',
-                    y='daughter',
-                    plot_width_value=1000,
-                    plot_height_value=1000,
+                    y='loss',
+                    plot_width_value=10000,
+                    plot_height_value=5000,
                     output_path='../data/output/',
                     filename=filename
                     )
