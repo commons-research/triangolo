@@ -29,6 +29,7 @@ spectras = load_and_filter_from_mgf(path=path_to_mgf, min_relative_intensity = 0
 
 pdl_combinations_df = combinator(spectras, 2)
 
+
 # %%
 # aggregate the calculated parent / daughter / loss combinations
 
@@ -36,6 +37,9 @@ agg_pdl_df = aggregator(pdl_combinations_df)
 
 
 agg_pdl_df = agg_pdl_df[agg_pdl_df['count'] >= 5]
+
+agg_pdl_df.info()
+
 
 # %%
 # output as a csv if needed

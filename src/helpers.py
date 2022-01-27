@@ -52,6 +52,7 @@ def combinator(spectras, precision):
         # here we adapt the script to the latest Spikes class
         peaks_mz = spectras[i].peaks.mz
         peaks_intensities  = spectras[i].peaks.intensities
+        feature_id  = spectras[i].get('feature_id')
         peaks_mz = np.round(peaks_mz, precision)
         d = []
         for a, b in combinations(peaks_mz, 2):
@@ -60,7 +61,8 @@ def combinator(spectras, precision):
                     {
                         'parent': b,
                         'daughter': a,
-                        'loss':  abs(a - b)
+                        'loss':  abs(a - b),
+                        'feature_id': feature_id
                     }
             )
         df_d = pd.DataFrame(d)
@@ -70,7 +72,7 @@ def combinator(spectras, precision):
         # npa = df_d[['parent', 'loss']].to_numpy()
         # df_d['COUNT'] = 1
         # mat = df_d.pivot_table('COUNT', index='parent', columns="loss").fillna(0)
-    
+
     pdl_combinations_df = pd.concat(pdl_combinations_dict.values())
     return pdl_combinations_df
 
