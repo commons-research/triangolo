@@ -16,12 +16,12 @@ filename = 'erythroxylum_coca'
 
 # Define the path of the corresponding spectral file (mfg format)
 
-path_to_mgf = '../data/input/e_coca.mgf'
+path_to_mgf = '../data/input/cocaine.mgf'
 
 # %%
 # Load the spectra defining the parsing parameters
 
-spectras = load_and_filter_from_mgf(path=path_to_mgf, min_relative_intensity = 0.01,
+spectras = load_and_filter_from_mgf(path=path_to_mgf, min_relative_intensity = 0.05,
             max_relative_intensity = 1, n_required=5, loss_mz_from = 10, loss_mz_to = 200)
 
 # %%
@@ -35,7 +35,6 @@ pdl_combinations_df = combinator(spectras, 2)
 
 agg_pdl_df = aggregator(pdl_combinations_df)
 
-
 agg_pdl_df = agg_pdl_df[agg_pdl_df['count'] >= 5]
 
 agg_pdl_df.info()
@@ -44,7 +43,7 @@ agg_pdl_df.info()
 # %%
 # output as a csv if needed
 
-agg_pdl_df.to_csv('../data/output/' + filename + '_pdl.csv')
+df_test.to_csv('../data/output/' + filename + '_pdl_featured_agg.csv', float_format='%g', index = None )
 
 # %%
 # quick static plot using datashader 
