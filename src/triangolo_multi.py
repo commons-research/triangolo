@@ -12,7 +12,7 @@ from helpers import plot_it_interactive
 # %%
 # Define the filename you want to use for the outputs (html interactive plots and csv of parents/daughters/losses)
 
-filename = 'erythroxylum_coca'
+filename = 'collection'
 
 # Define the path of the corresponding spectral file (mfg format)
 
@@ -20,16 +20,46 @@ path_to_mgf = '../data/input/e_coca.mgf'
 path_to_mgf2 = '../data/input/e_plowmanianum.mgf'
 path_to_mgf3 = '../data/input/cocaine.mgf'
 
-mgfs_pathes = [path_to_mgf, path_to_mgf2, path_to_mgf3]
+# Here we want to list all file spathes in a given dir
+
+mypath = '../data/input/'
+
+from os import walk
+
+f = []
+for (dirpath, dirnames, filenames) in walk(mypath):
+    f.extend(filenames)
+    break
+
+# the above function works but we would like the absolute pathes.abs(# Lets try this
+# 
+
+
+def absoluteFilePaths(directory):
+    for dirpath,_,filenames in os.walk(directory):
+        for f in filenames:
+            yield os.path.abspath(os.path.join(dirpath, f))
+
+
+mgf_pathes_object = absoluteFilePaths(mypath)
+
+# We then need to output the generator object as list 
+
+mgf_pathes_list = list(mgf_pathes_object)
+
+
+# Be careful invisible .DS_Store object in the file list can cause prblems later one. We remove it
+
+del mgf_pathes_list[3]
 
 # %%
 # Load the spectra defining the parsing parameters
 
 dico_spectral = {}
 
-for i in mgfs_pathes:
+for i in mgf_pathes_list:
     dico_spectral[i] = load_and_filter_from_mgf(path=i, min_relative_intensity = 0.05,
-            max_relative_intensity = 1, n_required=5, loss_mz_from = 10, loss_mz_to = 200)
+    max_relative_intensity = 1, n_required=5, loss_mz_from = 10, loss_mz_to = 200)
 
 
 
@@ -98,33 +128,44 @@ appended_data.drop('level_1', axis = 1, inplace =True)
 
 appended_data['source'] = appended_data["level_0"].apply(lambda x: os.path.splitext(os.path.basename(x))[0])
 
+appended_data.drop('level_0', axis = 1, inplace =True)
 
+# we generate and individual feature by combineing feature id and source
 
-basename = os.path.basename(filepath)
-
+appended_data['source_feature_id'] = appended_data['source'] + '_' + appended_data['feature_id']
 
 
 import collections
 
-df_test = result.groupby(['parent','daughter','loss'])['source'].apply(list).reset_index()
-df_test['count'] = df_test['source'].str.len()
-collections.Counter(df_test['source'])
+# df_test = appended_data.groupby(['parent','daughter','loss'])['source'].apply(list).reset_index()
+# df_test['count'] = df_test['source'].str.len()
+# collections.Counter(df_test['source'])
+
+
+# here we will try to 1. groupby and then 2. apply list on multiple columns
+
+# appended_data.groupby(['parent','daughter','loss']).apply(lambda x: [list(x['source']), list(x['source_feature_id'])]).apply(pd.Series)
+
+# above workd though quite slow
+# this one is wayyy quicker 
+
+df_test = appended_data.groupby(['parent','daughter','loss'], as_index=False)['source','source_feature_id'].agg(lambda x: list(x))
+
+# we then count the number of occurences per group 
+df_test['count'] = df_test['source_feature_id'].str.len()
 
 
 df_test['freq'] = df_test['source'].apply(lambda x: dict(collections.Counter(x)))
 
-
-df_test['freq'].apply(pd.Series)
+# Here we explode the collection counter object and return frequencies individually 
 
 df_test = pd.concat([df_test.drop('freq', axis=1), pd.json_normalize(df_test['freq'])], axis=1)
 
-df_test = df_test.drop('source', axis=1)
+# we can now drop useless columns 
+df_test = df_test.drop(['source', 'source_feature_id'], axis=1)
 
 
-
-pd.json_normalize(df_test['freq'])
-
-df_test = df_test[df_test['count'] >= 5]
+df_test = df_test[df_test['count'] >= 2]
 
 
 df_test = df_test.assign(feature_id=df_test.feature_id.map(lambda x: '|'.join(map(str, x))))
