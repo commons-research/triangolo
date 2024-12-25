@@ -200,6 +200,45 @@ agg_pdl_df.info()
 
 df_test.to_csv('../data/output/' + filename + '_pdl_featured_agg.csv', float_format='%g', index = None )
 
+
+## from hereon an meanwhile the MST is beeing calculate we will draft a pca
+
+df_for_pca = df_test.drop(['parent', 'daughter', 'loss', 'count'], axis =1 )
+df = df_for_pca.transpose()
+from sklearn.preprocessing import StandardScaler
+features = ['erythroxylum_plowmanianum', 'gentiana_pubigera', 'persicaria_orientalis', 'oxyspora_paniculata', 'caesalpinia_enneaphylla', 'erythroxylum_coca', 'stranvaesia_davidiana', 'blank', 'cocaine']
+# Separating out the features
+x = df.loc[:, features].values
+# I add np.nan_to _num to get 0 insted of nan
+x = np.nan_to_num(df.values)
+
+# Separating out the target
+y = df.loc[:,features].values
+
+# Standardizing the features
+x = StandardScaler().fit_transform(x)
+
+
+from sklearn.decomposition import PCA
+
+
+pca = PCA(n_components=2)
+principalComponents = pca.fit_transform(x)
+principalDf = pd.DataFrame(data = principalComponents
+             , columns = ['principal component 1', 'principal component 2'])
+
+df2 = pd.DataFrame(index=df.index)
+df2.reset_index(inplace=True)
+
+finalDf = pd.concat([principalDf, df2[['index']]], axis = 1)
+
+import plotly.express as px
+
+
+fig = px.scatter(finalDf, x="principal component 1", y="principal component 2", color="index")
+fig.show()
+
+
 # %%
 # quick static plot using datashader 
 # just specify the input and the data which should be plotted n the x and y axis 
